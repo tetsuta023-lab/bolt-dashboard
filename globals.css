@@ -25,3 +25,33 @@
 .prose td {
   @apply border border-gray-300 px-3 py-2;
 }
+/* Markdown 表示用スタイル */
+.markdown-body h1 {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.markdown-body h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body p {
+  line-height: 1.8;
+  margin-bottom: 1rem;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 2rem 0;
+}
+
+.markdown-body strong {
+  font-weight: 700;
+}
