@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabaseClient"
+// ここを相対パスに
+import { supabase } from "../../lib/supabaseClient"
 
 type BlogPost = {
   id: number
@@ -28,7 +29,6 @@ export default function BlogList() {
       }
       setLoading(false)
     }
-
     fetchPosts()
   }, [])
 
