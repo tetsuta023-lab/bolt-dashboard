@@ -1,0 +1,158 @@
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { supabase } from '../../../lib/supabaseClient';
+
+type Post = {
+  id: number;
+  title: string;
+  status: 'draft' | 'published';
+  date: string | null;
+  excerpt: string | null;
+  thumbnail: string | null;
+  content: string | null;
+};
+
+export default function EditPostPage() {
+  const router = useRouter();
+  const { id } = router.query;
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [post, setPost] = useState<Post | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('id, title, status, date, excerpt, thumbnail, content')
+        .eq('id', Number(id))
+        .single();
+      if (error) setError(error.message);
+      setPost(data as Post);
+      setLoading(false);
+    })();
+  }, [id]);
+
+  const onSave = async () => {
+    if (!post) return;
+    setSaving(true);
+    setError(null);
+    const { error } = await supabase
+      .from('blog_posts')
+      .update({
+        title: post.title,
+        status: post.status,
+        date: post.date,
+        excerpt: post.excerpt,
+        thumbnail: post.thumbnail,
+        content: post.content, // ★ 追加
+      })
+      .eq('id', post.id);
+
+    setSaving(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      // 保存後はプレビューに飛ぶ
+      router.push(`/blog/preview/${post.id}`);
+    }
+  };
+
+  if (loading) return <div className="p-6">読み込み中...</div>;
+  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
+  if (!post) return <div className="p-6">記事が見つかりません</div>;
+
+  return (
+    <main className="max-w-3xl mx-auto p-6">
+      <Link href="/blog" className="text-indigo-600 hover:underline">← 管理に戻る</Link>
+      <h1 className="text-2xl font-semibold mt-4 mb-6">記事を編集（ID: {post.id}）</h1>
+
+      <div className="space-y-5">
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">タイトル</div>
+          <input
+            className="w-full border rounded px-3 py-2"
+            value={post.title ?? ''}
+            onChange={(e) => setPost({ ...post, title: e.target.value })}
+          />
+        </label>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="block">
+            <div className="text-sm text-gray-600 mb-1">公開ステータス</div>
+            <select
+              className="w-full border rounded px-3 py-2"
+              value={post.status ?? 'draft'}
+              onChange={(e) => setPost({ ...post, status: e.target.value as Post['status'] })}
+            >
+              <option value="draft">下書き</option>
+              <option value="published">公開中</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <div className="text-sm text-gray-600 mb-1">日付</div>
+            <input
+              type="date"
+              className="w-full border rounded px-3 py-2"
+              value={post.date ?? ''}
+              onChange={(e) => setPost({ ...post, date: e.target.value })}
+            />
+          </label>
+        </div>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">サムネイルURL</div>
+          <input
+            className="w-full border rounded px-3 py-2"
+            placeholder="https://..."
+            value={post.thumbnail ?? ''}
+            onChange={(e) => setPost({ ...post, thumbnail: e.target.value })}
+          />
+        </label>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">本文の冒頭（excerpt）</div>
+          <textarea
+            className="w-full border rounded px-3 py-2 h-24"
+            value={post.excerpt ?? ''}
+            onChange={(e) => setPost({ ...post, excerpt: e.target.value })}
+          />
+        </label>
+
+        {/* ★ 本文エリア */}
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">本文（content）</div>
+          <textarea
+            className="w-full border rounded px-3 py-2 h-56 leading-7"
+            placeholder="ここに本文を入力（長文OK）"
+            value={post.content ?? ''}
+            onChange={(e) => setPost({ ...post, content: e.target.value })}
+          />
+        </label>
+
+        {error && <div className="text-red-600">{error}</div>}
+
+        <div className="flex gap-3">
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {saving ? '保存中...' : '保存してプレビューへ'}
+          </button>
+          <Link
+            href={`/blog/preview/${post.id}`}
+            className="px-4 py-2 rounded border hover:bg-gray-50"
+          >
+            プレビューを見る
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
