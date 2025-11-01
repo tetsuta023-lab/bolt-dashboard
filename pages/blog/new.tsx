@@ -1,71 +1,91 @@
-// pages/blog/new.tsx
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { supabase } from "../../lib/supabaseClient";
+
+type Status = "draft" | "published";
 
 export default function NewPost() {
-  const r = useRouter();
-  const [title, setTitle] = useState('');
-  const [status, setStatus] = useState<'draft'|'published'>('draft');
-  const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [excerpt, setExcerpt] = useState('');
-  const [content, setContent] = useState('');
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [status, setStatus] = useState<Status>("draft");
+  const [date, setDate] = useState<string>("");
+  const [excerpt, setExcerpt] = useState("");
+  const [thumbnail, setThumbnail] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
 
-  // デモ用：実保存はせず一覧へ戻す
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    r.push('/blog'); // 実運用ではAPI保存→/blog へ
+  const onCreate = async () => {
+    setSaving(true);
+    setMsg(null);
+
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .insert([{ title, status, date: date || null, excerpt: excerpt || null, thumbnail: thumbnail || null }])
+      .select("id")
+      .single();
+
+    setSaving(false);
+
+    if (error) {
+      setMsg(`作成失敗: ${error.message}`);
+      return;
+    }
+
+    setMsg("作成しました");
+    // 作成後は編集画面へ
+    if (data?.id) router.push(`/blog/edit/${data.id}`);
   };
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-semibold">新規記事</h1>
-      <form onSubmit={onSubmit} className="mt-6 space-y-5">
-        <Field label="タイトル">
-          <input value={title} onChange={e=>setTitle(e.target.value)} className="input" placeholder="記事タイトル" />
-        </Field>
+      <Link href="/blog" className="text-indigo-600 underline">← 管理に戻る</Link>
+      <h1 className="text-2xl font-semibold mt-3">新規記事</h1>
 
-        <Field label="ステータス">
-          <select value={status} onChange={e=>setStatus(e.target.value as any)} className="input">
-            <option value="draft">下書き</option>
-            <option value="published">公開中</option>
+      <div className="mt-6 space-y-4">
+        <label className="block">
+          <span className="text-sm text-gray-700">タイトル</span>
+          <input className="mt-1 w-full rounded border px-3 py-2"
+            value={title} onChange={(e) => setTitle(e.target.value)} placeholder="記事タイトル" />
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-gray-700">ステータス</span>
+          <select className="mt-1 w-full rounded border px-3 py-2"
+            value={status} onChange={(e) => setStatus(e.target.value as Status)}>
+            <option value="draft">draft（下書き）</option>
+            <option value="published">published（公開）</option>
           </select>
-        </Field>
+        </label>
 
-        {/* ★ サムネイルURL */}
-        <Field label="サムネイルURL（任意）">
-          <input value={thumbnailUrl} onChange={e=>setThumbnailUrl(e.target.value)} className="input" placeholder="https://..." />
-          <p className="hint">未入力でもOK。Unsplash等の画像URLを貼ると一覧に表示されます。</p>
-        </Field>
+        <label className="block">
+          <span className="text-sm text-gray-700">日付</span>
+          <input type="date" className="mt-1 w-full rounded border px-3 py-2"
+            value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
 
-        <Field label="概要（excerpt）">
-          <textarea value={excerpt} onChange={e=>setExcerpt(e.target.value)} className="input h-24" />
-        </Field>
+        <label className="block">
+          <span className="text-sm text-gray-700">抜粋（概要）</span>
+          <textarea rows={4} className="mt-1 w-full rounded border px-3 py-2"
+            value={excerpt} onChange={(e) => setExcerpt(e.target.value)} placeholder="記事の概要…" />
+        </label>
 
-        <Field label="本文">
-          <textarea value={content} onChange={e=>setContent(e.target.value)} className="input h-40" />
-        </Field>
+        <label className="block">
+          <span className="text-sm text-gray-700">サムネURL（任意）</span>
+          <input className="mt-1 w-full rounded border px-3 py-2"
+            value={thumbnail} onChange={(e) => setThumbnail(e.target.value)} placeholder="https://…" />
+        </label>
 
-        <div className="flex gap-3">
-          <Link href="/blog" className="btn-secondary">キャンセル</Link>
-          <button type="submit" className="btn-primary">保存（デモ）</button>
+        <div className="flex gap-2">
+          <button onClick={onCreate} disabled={saving || !title}
+            className="px-4 py-2 rounded bg-indigo-600 text-white disabled:opacity-60">
+            {saving ? "作成中…" : "作成する"}
+          </button>
+          <Link href="/blog" className="px-4 py-2 rounded border">キャンセル</Link>
         </div>
-      </form>
-    </main>
-  );
-}
 
-function Field(props: {label:string; children:React.ReactNode}) {
-  return (
-    <label className="block">
-      <span className="text-sm text-gray-600">{props.label}</span>
-      <div className="mt-1">{props.children}</div>
-      <style jsx>{`
-        .input { width:100%; border:1px solid #e5e7eb; border-radius:0.5rem; padding:0.5rem 0.75rem; }
-        .btn-primary { background:#4f46e5; color:#fff; padding:0.5rem 0.9rem; border-radius:0.5rem; }
-        .btn-secondary { border:1px solid #e5e7eb; padding:0.5rem 0.9rem; border-radius:0.5rem; }
-        .hint { font-size:.75rem; color:#6b7280; margin-top:.25rem; }
-      `}</style>
-    </label>
+        {msg && <p className="text-sm mt-2">{msg}</p>}
+      </div>
+    </main>
   );
 }
