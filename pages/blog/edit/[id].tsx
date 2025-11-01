@@ -1,92 +1,93 @@
 // pages/blog/edit/[id].tsx
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { getPostById } from '../data';
-import { useMemo, useState } from 'react';
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { useMemo, useState } from "react";
+import { posts as seedPosts, type BlogPost } from "../../../lib/blog/data";
 
-export default function EditPost() {
-  const { query } = useRouter();
-  const post = useMemo(()=> getPostById(String(query.id)), [query.id]);
+export default function BlogEdit() {
+  const router = useRouter();
+  const id = Number(router.query.id);
+  const initial = useMemo(
+    () => seedPosts.find((p) => p.id === id),
+    [id]
+  );
 
-  const [title, setTitle] = useState(post?.title ?? '');
-  const [status, setStatus] = useState<'draft'|'published'>(post?.status ?? 'draft');
-  const [thumbnailUrl, setThumbnailUrl] = useState(post?.thumbnailUrl ?? '');
-  const [excerpt, setExcerpt] = useState(post?.excerpt ?? '');
-  const [content, setContent] = useState(post?.content ?? '');
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
+  const [status, setStatus] = useState<BlogPost["status"]>(
+    initial?.status ?? "draft"
+  );
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // デモ：保存処理はスキップ
-    alert('デモのため見た目だけ更新。実保存は未実装です。');
-  };
-
-  if (!post) {
+  if (!initial) {
     return (
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <p className="text-gray-600">対象の記事が見つかりませんでした。</p>
-        <Link href="/blog" className="text-indigo-600 hover:underline">← 一覧に戻る</Link>
+      <main className="mx-auto max-w-2xl px-4 py-8">
+        <p className="text-gray-600">記事が見つかりません。（id: {id}）</p>
+        <Link href="/blog" className="text-indigo-600 underline">
+          ← 一覧へ
+        </Link>
       </main>
     );
   }
 
-  return (
-    <main className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-semibold">記事を編集：{post.title}</h1>
+  const fakeSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert("（デモ）フォーム値を保存するなら Supabase 連携を追加します。");
+    router.push(`/blog/preview/${id}`);
+  };
 
-      {/* プレビュー用サムネ */}
-      <div className="mt-4 rounded-lg overflow-hidden border">
-        {thumbnailUrl ? (
-          <img src={thumbnailUrl} alt="thumb" className="w-full h-52 object-cover" />
-        ) : (
-          <div className="w-full h-52 bg-gradient-to-br from-gray-100 to-gray-200" />
-        )}
+  return (
+    <main className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-semibold">📝 記事を編集</h1>
+        <Link href={`/blog/preview/${id}`} className="text-indigo-600 underline">
+          プレビューを見る →
+        </Link>
       </div>
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-5">
-        <Field label="タイトル">
-          <input value={title} onChange={e=>setTitle(e.target.value)} className="input" />
-        </Field>
+      <form onSubmit={fakeSave} className="space-y-5">
+        <div>
+          <label className="mb-1 block text-sm font-medium">タイトル</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2"
+          />
+        </div>
 
-        <Field label="ステータス">
-          <select value={status} onChange={e=>setStatus(e.target.value as any)} className="input">
+        <div>
+          <label className="mb-1 block text-sm font-medium">概要（抜粋）</label>
+          <textarea
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            rows={4}
+            className="w-full rounded-md border border-gray-300 px-3 py-2"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium">ステータス</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as BlogPost["status"])}
+            className="rounded-md border border-gray-300 px-3 py-2"
+          >
             <option value="draft">下書き</option>
             <option value="published">公開中</option>
           </select>
-        </Field>
+        </div>
 
-        <Field label="サムネイルURL">
-          <input value={thumbnailUrl} onChange={e=>setThumbnailUrl(e.target.value)} className="input" placeholder="https://..." />
-        </Field>
-
-        <Field label="概要（excerpt）">
-          <textarea value={excerpt} onChange={e=>setExcerpt(e.target.value)} className="input h-24" />
-        </Field>
-
-        <Field label="本文">
-          <textarea value={content} onChange={e=>setContent(e.target.value)} className="input h-40" />
-        </Field>
-
-        <div className="flex gap-3">
-          <Link href="/blog" className="btn-secondary">戻る</Link>
-          <button type="submit" className="btn-primary">保存（デモ）</button>
-          <Link href={`/blog/preview/${post.id}`} className="btn-secondary">プレビューを開く</Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+          >
+            保存（デモ）
+          </button>
+          <Link href="/blog" className="text-gray-600 underline">
+            キャンセル
+          </Link>
         </div>
       </form>
-
-      <style jsx>{`
-        .input { width:100%; border:1px solid #e5e7eb; border-radius:0.5rem; padding:0.5rem 0.75rem; }
-        .btn-primary { background:#4f46e5; color:#fff; padding:0.5rem 0.9rem; border-radius:0.5rem; }
-        .btn-secondary { border:1px solid #e5e7eb; padding:0.5rem 0.9rem; border-radius:0.5rem; }
-      `}</style>
     </main>
-  );
-}
-
-function Field(props: {label:string; children:React.ReactNode}) {
-  return (
-    <label className="block">
-      <span className="text-sm text-gray-600">{props.label}</span>
-      <div className="mt-1">{props.children}</div>
-    </label>
   );
 }
