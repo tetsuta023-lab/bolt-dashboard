@@ -21,16 +21,10 @@ export default function BlogNew() {
               保存（ダミー）
             </button>
             <Link href="/blog" className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-              キャンセル
+              一覧へ戻る
             </Link>
           </div>
         </form>
-
-        <div className="mt-6">
-          <Link href="/blog" className="text-sm text-indigo-600 hover:text-indigo-700">
-            ← 一覧へ戻る
-          </Link>
-        </div>
       </div>
     </main>
   );
