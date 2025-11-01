@@ -1,69 +1,55 @@
 // pages/blog/preview/[id].tsx
-import { useRouter } from "next/router";
+import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
-import Head from "next/head";
-import { BLOG_POSTS } from "../../../lib/blog/data";
+import Image from "next/image";
+import { BLOG_POSTS, BlogPost } from "@/lib/blog/data";
 
-export default function BlogPreviewPage() {
-  const router = useRouter();
-  const { id } = router.query;
+type Props = { post: BlogPost };
 
-  const post = BLOG_POSTS.find(p => String(p.id) === String(id));
-
+export default function PreviewBlogPage({ post }: Props) {
   if (!post) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-xl font-semibold mb-6">記事が見つかりませんでした</h1>
-        <Link href="/blog" className="text-indigo-600 hover:underline">← ブログ管理へ戻る</Link>
+        <p className="text-gray-600">記事が見つかりませんでした。</p>
+        <Link href="/blog" className="text-indigo-600 hover:underline">← 一覧へ戻る</Link>
       </main>
     );
   }
 
   return (
-    <>
-      <Head>
-        <title>{post.title} | プレビュー</title>
-        <meta name="description" content={post.excerpt} />
-      </Head>
+    <main className="max-w-3xl mx-auto px-4 py-10">
+      <div className="flex items-center gap-3 mb-6">
+        <Link href="/blog" className="text-indigo-600 hover:underline">← 管理に戻る</Link>
+        <span className="text-sm text-gray-500">ID: {post.id}</span>
+      </div>
 
-      <main className="max-w-3xl mx-auto px-4 py-10">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{post.title}</h1>
-          <span className={`text-sm px-2 py-1 rounded ${
-            post.status === "published" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"
-          }`}>
-            {post.status === "published" ? "公開中" : "下書き"}
-          </span>
+      <h1 className="text-3xl font-bold mb-3">{post.title}</h1>
+      <div className="flex gap-3 items-center mb-6">
+        <span className={`text-xs px-2 py-1 rounded ${post.status === "published" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>
+          {post.status === "published" ? "公開中" : "下書き"}
+        </span>
+        <span className="text-sm text-gray-500">{post.date}</span>
+      </div>
+
+      {post.thumbnail && (
+        <div className="mb-6">
+          {/* デモ用なので next/image の幅高さは固定 */}
+          <Image src={post.thumbnail} alt="" width={800} height={420} className="rounded" />
         </div>
+      )}
 
-        <p className="text-gray-500 text-sm mb-4">{post.date}</p>
-
-        {post.thumbnail && (
-          <img
-            src={post.thumbnail}
-            alt={post.title}
-            className="w-full rounded-md mb-6"
-          />
-        )}
-
-        {/* 本文（Markdownっぽく見える簡易表示：改行を反映） */}
-        <article className="prose max-w-none">
-          {post.body ? (
-            post.body.split("\n").map((line, i) => (
-              <p key={i} className="mb-3 whitespace-pre-wrap">{line}</p>
-            ))
-          ) : (
-            <p className="text-gray-600">
-              本文が未入力です。編集ページから本文（body）を追加してください。
-            </p>
-          )}
-        </article>
-
-        <div className="mt-10 flex gap-4">
-          <Link href="/blog" className="text-indigo-600 hover:underline">← ブログ管理へ</Link>
-          <Link href={`/blog/edit/${post.id}`} className="text-gray-600 hover:underline">編集する →</Link>
-        </div>
-      </main>
-    </>
+      <p className="text-lg leading-8 text-gray-800">{post.excerpt}</p>
+    </main>
   );
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const paths = BLOG_POSTS.map((p) => ({ params: { id: String(p.id) } }));
+  return { paths, fallback: false };
+};
+
+export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
+  const id = Number(params?.id);
+  const post = BLOG_POSTS.find((p) => p.id === id) || null;
+  return { props: { post } };
+};
