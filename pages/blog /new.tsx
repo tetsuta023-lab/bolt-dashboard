@@ -1,120 +1,175 @@
-import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { supabase } from "../../lib/supabaseClient";
-import { useRouter } from "next/router";
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { supabase } from '../../lib/supabaseClient';
+
+type Status = 'draft' | 'published';
+
+function todayISO() {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
 
 export default function NewPostPage() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [status, setStatus] = useState<"draft" | "published">("draft");
-  const [date, setDate] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [thumbnail, setThumbnail] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState<string>('');
+  const [status, setStatus] = useState<Status>('draft');
+  const [date, setDate] = useState<string>(todayISO());
+  const [excerpt, setExcerpt] = useState<string>('');
+  const [thumbnail, setThumbnail] = useState<string>('');
+  const [content, setContent] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const save = async () => {
-    const { data, error } = await supabase.from("blog_posts").insert({
-      title,
-      status,
-      date: date || null,
-      excerpt: excerpt || null,
-      thumbnail: thumbnail || null,
-      content
-    }).select().single();
+  async function savePost(nextStatus: Status) {
+    setSaving(true);
+    setErrorMsg(null);
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .insert([
+          {
+            title: title.trim(),
+            status: nextStatus,
+            date: date || null,
+            excerpt: excerpt || null,
+            thumbnail: thumbnail || null,
+            content: content || null,
+          },
+        ])
+        .select('id')
+        .single();
 
-    if (error) {
-      alert(`保存に失敗: ${error.message}`);
-      return;
+      if (error) throw error;
+
+      // 保存後は一覧へ（またはプレビューへ飛ばしたい場合は /blog/preview/${data.id} に）
+      await router.push('/blog');
+    } catch (e: any) {
+      setErrorMsg(e.message ?? '保存に失敗しました');
+    } finally {
+      setSaving(false);
     }
-    router.push(`/blog/preview/${data.id}`);
-  };
+  }
 
   return (
-    <main className="p-6">
-      <a href="/blog" className="text-sm text-indigo-600 hover:underline">
-        ← 管理に戻る
-      </a>
-      <h1 className="mt-3 text-2xl font-semibold">新規記事</h1>
+    <main style={{ maxWidth: 860, margin: '24px auto', padding: '0 16px' }}>
+      <div style={{ marginBottom: 16 }}>
+        <Link href="/blog">
+          <a style={{ color: '#6366f1' }}>← 管理に戻る</a>
+        </Link>
+      </div>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        {/* 入力フォーム */}
-        <div className="rounded border bg-white p-4 shadow-sm">
-          <label className="block text-sm font-medium">タイトル</label>
+      <h1 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: 16 }}>新規記事の作成</h1>
+
+      {errorMsg && (
+        <div style={{ background: '#fee2e2', color: '#991b1b', padding: '8px 12px', borderRadius: 6, marginBottom: 12 }}>
+          {errorMsg}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gap: 12 }}>
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>タイトル</span>
           <input
-            className="mt-1 w-full rounded border px-3 py-2"
+            type="text"
+            placeholder="記事タイトルを入力"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            disabled={saving}
+            style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
           />
+        </label>
 
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium">ステータス</label>
-              <select
-                className="mt-1 w-full rounded border px-3 py-2"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
-              >
-                <option value="draft">下書き</option>
-                <option value="published">公開</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">日付</label>
-              <input
-                type="date"
-                className="mt-1 w-full rounded border px-3 py-2"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <label className="mt-4 block text-sm font-medium">サムネURL</label>
-          <input
-            className="mt-1 w-full rounded border px-3 py-2"
-            placeholder="https://…"
-            value={thumbnail}
-            onChange={(e) => setThumbnail(e.target.value)}
-          />
-
-          <label className="mt-4 block text-sm font-medium">抜粋</label>
-          <textarea
-            className="mt-1 h-24 w-full rounded border px-3 py-2"
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-          />
-
-          <label className="mt-4 block text-sm font-medium">
-            本文（Markdown対応）
+        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span>公開状態</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as Status)}
+              disabled={saving}
+              style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+            >
+              <option value="draft">下書き</option>
+              <option value="published">公開中</option>
+            </select>
           </label>
-          <textarea
-            className="mt-1 h-56 w-full rounded border px-3 py-2 font-mono"
-            placeholder="## 見出し\n本文を **Markdown** で書けます。"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
 
-          <button
-            onClick={save}
-            className="mt-4 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-          >
-            保存してプレビューへ
-          </button>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span>日付</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              disabled={saving}
+              style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+            />
+          </label>
         </div>
 
-        {/* ライブプレビュー */}
-        <div className="rounded border bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-sm font-medium text-gray-500">プレビュー</h2>
-          {thumbnail ? (
-            <img src={thumbnail} alt="" className="mb-4 w-full rounded" />
-          ) : null}
-          <article className="prose prose-neutral">
-            <h1>{title || "（タイトル）"}</h1>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content || "本文（Markdown）がここに表示されます。"}
-            </ReactMarkdown>
-          </article>
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>サマリー（抜粋）</span>
+          <textarea
+            placeholder="一覧に出す短い説明"
+            rows={3}
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            disabled={saving}
+            style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+          />
+        </label>
+
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>サムネイルURL（任意）</span>
+          <input
+            type="url"
+            placeholder="https://example.com/thumbnail.jpg"
+            value={thumbnail}
+            onChange={(e) => setThumbnail(e.target.value)}
+            disabled={saving}
+            style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+          />
+        </label>
+
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>本文（Markdown対応）</span>
+          <textarea
+            placeholder={`# 見出し\n本文を書いてください。\n\n---\n**太字** や 改行 もOK`}
+            rows={16}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            disabled={saving}
+            style={{ padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: 8, fontFamily: 'inherit' }}
+          />
+        </label>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={() => savePost('draft')}
+            disabled={saving || !title.trim()}
+            style={{
+              padding: '10px 14px',
+              borderRadius: 8,
+              border: '1px solid #e5e7eb',
+              background: '#fff',
+            }}
+          >
+            下書きとして保存
+          </button>
+          <button
+            onClick={() => savePost('published')}
+            disabled={saving || !title.trim()}
+            style={{
+              padding: '10px 14px',
+              borderRadius: 8,
+              border: '1px solid #4338ca',
+              background: '#4f46e5',
+              color: '#fff',
+            }}
+          >
+            公開して保存
+          </button>
         </div>
       </div>
     </main>
