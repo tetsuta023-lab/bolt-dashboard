@@ -1,6 +1,6 @@
 // pages/blog/index.tsx
 import Link from "next/link";
-import { BLOG_POSTS } from "../../lib/blog/data";
+import { BLOG_POSTS } from "@/lib/blog/data";
 
 export default function BlogIndexPage() {
   return (
