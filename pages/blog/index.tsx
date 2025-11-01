@@ -1,87 +1,94 @@
-import Head from "next/head";
+import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
 
-type BlogPost = {
+type Post = {
   id: number;
   title: string;
   status: "draft" | "published";
   date: string | null;
   excerpt: string | null;
-  thumbnail?: string | null;
+  thumbnail: string | null;
 };
 
-type Props = { posts: BlogPost[] };
+type Props = { posts: Post[] };
 
-export default function BlogList({ posts }: Props) {
-  return (
-    <>
-      <Head><title>ブログ管理</title></Head>
-      <main className="max-w-5xl mx-auto px-4 py-6">
-        <h1 className="text-xl font-semibold mb-4">📒 ブログ管理</h1>
-
-        <div className="mb-4">
-          <Link
-            href="/blog/new"
-            className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-white hover:opacity-90"
-          >
-            + 新規記事
-          </Link>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {posts.map((p) => (
-            <div key={p.id} className="rounded-lg border bg-white p-4">
-              <div className="flex items-center gap-2 text-sm mb-1">
-                <span
-                  className={`inline-block rounded-full px-2 py-0.5 ${
-                    p.status === "published"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  {p.status === "published" ? "公開中" : "下書き"}
-                </span>
-                <span className="text-gray-500">
-                  {p.date ? new Date(p.date).toISOString().slice(0, 10) : ""}
-                </span>
-              </div>
-
-              <div className="font-medium">{p.title}</div>
-              <div className="text-sm text-gray-600 line-clamp-2">{p.excerpt}</div>
-
-              <div className="mt-3 flex gap-8">
-                <Link href={`/blog/edit/${p.id}`} className="text-indigo-600 hover:underline">
-                  編集
-                </Link>
-                <Link href={`/blog/preview/${p.id}`} className="text-indigo-600 hover:underline">
-                  プレビュー
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6">
-          <Link href="/dashboard-v2" className="text-indigo-600 hover:underline">
-            ← Dashboard v2 に戻る
-          </Link>
-        </div>
-      </main>
-    </>
-  );
-}
-
-export async function getServerSideProps() {
+export const getServerSideProps: GetServerSideProps<Props> = async () => {
   const { data, error } = await supabase
     .from("blog_posts")
     .select("id,title,status,date,excerpt,thumbnail")
-    .order("id", { ascending: true });
+    .order("date", { ascending: false });
 
   if (error) {
-    // 空配列でも描画できるようにする
-    return { props: { posts: [] as BlogPost[] } };
+    console.error("fetch posts error:", error);
+    return { props: { posts: [] } };
   }
+  return { props: { posts: (data ?? []) as Post[] } };
+};
 
-  return { props: { posts: (data ?? []) as BlogPost[] } };
+export default function BlogIndex({ posts }: Props) {
+  return (
+    <main className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-semibold mb-6">📝 ブログ管理</h1>
+
+      <div className="flex justify-end mb-4">
+        <Link
+          href="/blog/new"
+          className="px-3 py-2 rounded-md bg-indigo-600 text-white text-sm"
+        >
+          + 新規記事
+        </Link>
+      </div>
+
+      {posts.length === 0 && (
+        <p className="text-gray-500">まだ記事がありません。「新規記事」から作成してください。</p>
+      )}
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        {posts.map((p) => (
+          <div key={p.id} className="rounded-lg border p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  p.status === "published"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-yellow-100 text-yellow-700"
+                }`}
+              >
+                {p.status === "published" ? "公開中" : "下書き"}
+              </span>
+              <span className="text-xs text-gray-500">
+                {p.date ?? ""}
+              </span>
+            </div>
+            <h2 className="font-medium">{p.title}</h2>
+            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+              {p.excerpt ?? ""}
+            </p>
+
+            <div className="flex gap-2 mt-3">
+              <Link
+                href={`/blog/edit/${p.id}`}
+                className="px-3 py-1.5 text-sm rounded border"
+              >
+                編集
+              </Link>
+              <Link
+                href={`/blog/preview/${p.id}`}
+                className="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white"
+              >
+                プレビュー
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8">
+        <Link href="/dashboard-v2" className="text-indigo-600 underline">
+          ← Dashboard v2 に戻る
+        </Link>
+      </div>
+    </main>
+  );
 }
