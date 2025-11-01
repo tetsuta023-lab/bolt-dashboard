@@ -1,83 +1,59 @@
-import { GetServerSideProps } from "next";
-import React from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { supabase } from "../../../lib/supabaseClient";
+import Link from 'next/link';
+import { GetServerSideProps } from 'next';
+import { supabase } from '../../../lib/supabaseClient';
+import ReactMarkdown from 'react-markdown';
 
 type Post = {
   id: number;
   title: string;
-  status: string;
+  status: 'draft' | 'published';
   date: string | null;
   excerpt: string | null;
   thumbnail: string | null;
   content: string | null;
 };
 
-type Props = { post: Post | null };
-
-export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const id = Number(ctx.params?.id);
-  if (!id) return { props: { post: null } };
-
   const { data, error } = await supabase
-    .from("blog_posts")
-    .select("*")
-    .eq("id", id)
+    .from('blog_posts')
+    .select('id, title, status, date, excerpt, thumbnail, content')
+    .eq('id', id)
     .single();
 
-  if (error) {
-    return { props: { post: null } };
+  if (error || !data) {
+    console.error('Error fetching post:', error);
+    return { notFound: true };
   }
-  return { props: { post: data as Post } };
+
+  return { props: { post: data } };
 };
 
-export default function PreviewPage({ post }: Props) {
-  if (!post) {
-    return <main className="p-6">記事が見つかりませんでした。</main>;
-  }
-
+export default function BlogPreview({ post }: { post: Post }) {
   return (
-    <main className="p-6">
-      <a href="/blog" className="text-sm text-indigo-600 hover:underline">
-        ← 管理に戻る
-      </a>
+    <main style={{ maxWidth: '700px', margin: '2rem auto', padding: '0 1rem' }}>
+      <Link href="/blog">
+        <a style={{ display: 'block', marginBottom: '1rem', color: '#0070f3' }}>← 管理に戻る</a>
+      </Link>
 
-      <h1 className="mt-3 text-2xl font-semibold">{post.title}</h1>
+      <h1 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>{post.title}</h1>
+      <p style={{ color: '#888', marginBottom: '1.5rem' }}>{post.date}</p>
 
-      <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
-            post.status === "published"
-              ? "bg-green-100 text-green-700"
-              : "bg-yellow-100 text-yellow-700"
-          }`}
-        >
-          {post.status === "published" ? "公開中" : "下書き"}
-        </span>
-        {post.date ? <span>{post.date}</span> : null}
-        <span>ID: {post.id}</span>
-      </div>
-
-      {post.thumbnail ? (
+      {post.thumbnail && (
         <img
           src={post.thumbnail}
-          alt=""
-          className="mt-6 w-full max-w-3xl rounded shadow"
+          alt={post.title}
+          style={{
+            width: '100%',
+            borderRadius: '8px',
+            marginBottom: '1.5rem',
+          }}
         />
-      ) : null}
+      )}
 
-      {/* 本文（Markdown） */}
-      <article className="prose prose-neutral mt-8">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {post.content ?? ""}
-        </ReactMarkdown>
-      </article>
-
-      {/* 抜粋（任意） */}
-      {post.excerpt ? (
-        <p className="mt-10 text-sm text-gray-500">要約: {post.excerpt}</p>
-      ) : null}
+      <div className="markdown-body">
+        <ReactMarkdown>{post.content || ''}</ReactMarkdown>
+      </div>
     </main>
   );
 }
