@@ -3,14 +3,13 @@ import Link from "next/link";
 
 export default function BlogEdit() {
   const { query } = useRouter();
-  const id = String(query.id || "");
+  const id = String(query.id ?? "");
 
   const mock = {
     title: id === "draft-1" ? "（下書き）長岡花火の取材メモ" : "Hotel Okura Tokyo Bay 宿泊レビュー",
-    content:
-      id === "draft-1"
-        ? "ここに長岡花火の取材メモ（ダミー）が入ります。"
-        : "ここにホテル宿泊レビュー（ダミー）が入ります。",
+    content: id === "draft-1"
+      ? "ここに長岡花火の取材メモ（ダミー）が入ります。"
+      : "ここにホテル宿泊レビュー（ダミー）が入ります。",
   };
 
   return (
