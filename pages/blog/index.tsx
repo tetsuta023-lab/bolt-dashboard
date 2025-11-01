@@ -1,67 +1,57 @@
-// pages/blog/index.tsx
-import Link from "next/link";
-import { BLOG_POSTS } from "@/lib/blog/data";
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { supabase } from "@/lib/supabaseClient"
 
-export default function BlogIndexPage() {
+type BlogPost = {
+  id: number
+  title: string
+  status: string
+  date: string
+  excerpt: string
+}
+
+export default function BlogList() {
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .select("*")
+        .order("date", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching posts:", error)
+      } else {
+        setPosts(data || [])
+      }
+      setLoading(false)
+    }
+
+    fetchPosts()
+  }, [])
+
+  if (loading) return <p>読み込み中...</p>
+
   return (
-    <main className="max-w-6xl mx-auto px-4 py-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">✏️ ブログ管理</h1>
-        <Link
-          href="/blog/new"
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-        >
-          ＋ 新規記事
-        </Link>
-      </div>
-
-      {/* 投稿カード一覧 */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {BLOG_POSTS.map((post) => (
-          <div
-            key={post.id}
-            className="border border-gray-200 rounded-lg p-5 shadow-sm bg-white hover:shadow-md transition"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <span
-                className={`text-xs px-2 py-1 rounded ${
-                  post.status === "published"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                {post.status === "published" ? "公開中" : "下書き"}
-              </span>
-              <span className="text-sm text-gray-500">{post.date}</span>
-            </div>
-
-            <h2 className="text-lg font-semibold mb-1">{post.title}</h2>
-            <p className="text-sm text-gray-600 mb-4">{post.excerpt}</p>
-
-            <div className="flex gap-2">
-              <Link
-                href={`/blog/edit/${post.id}`}
-                className="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-100"
-              >
-                編集
-              </Link>
-
-              <Link
-                href={`/blog/preview/${post.id}`} // ← ここがポイント！
-                className="px-3 py-1 text-sm rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
-              >
-                プレビュー
-              </Link>
-            </div>
+    <div style={{ padding: "2rem" }}>
+      <h1>📝 ブログ管理</h1>
+      {posts.length === 0 ? (
+        <p>記事がまだありません。</p>
+      ) : (
+        posts.map((post) => (
+          <div key={post.id} style={{ border: "1px solid #ddd", padding: "1rem", marginBottom: "1rem" }}>
+            <p style={{ color: post.status === "published" ? "green" : "orange" }}>
+              {post.status === "published" ? "公開中" : "下書き"}
+            </p>
+            <h3>{post.title}</h3>
+            <p>{post.excerpt}</p>
+            <p>{post.date}</p>
+            <Link href={`/blog/preview/${post.id}`}>プレビュー</Link>
           </div>
-        ))}
-      </div>
-
-      <div className="mt-10">
-        <Link href="/dashboard-v2" className="text-indigo-600 hover:underline">
-          ← Dashboard v2 に戻る
-        </Link>
-      </div>
-    </main>
-  );
+        ))
+      )}
+    </div>
+  )
 }
