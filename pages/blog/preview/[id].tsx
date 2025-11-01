@@ -1,80 +1,69 @@
-import Head from "next/head";
+import { GetServerSideProps } from "next";
 import Link from "next/link";
-import { GetServerSidePropsContext } from "next";
 import { supabase } from "../../../lib/supabaseClient";
 
-type BlogPost = {
+type Post = {
   id: number;
   title: string;
   status: "draft" | "published";
   date: string | null;
   excerpt: string | null;
-  thumbnail?: string | null;
-  body?: string | null; // 将来本文を入れる用
+  thumbnail: string | null;
 };
 
-type Props = { post: BlogPost | null };
+type Props = { post: Post | null };
 
-export default function BlogPreview({ post }: Props) {
-  if (!post) {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <p className="text-gray-600">記事が見つかりませんでした。</p>
-        <Link href="/blog" className="text-indigo-600 hover:underline">
-          ← 管理に戻る
-        </Link>
-      </main>
-    );
-  }
-
-  return (
-    <>
-      <Head><title>{post.title} | プレビュー</title></Head>
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <Link href="/blog" className="text-indigo-600 hover:underline">
-          ← 管理に戻る
-        </Link>
-
-        <h1 className="mt-2 text-2xl font-semibold">{post.title}</h1>
-
-        <div className="mt-2 flex items-center gap-3 text-sm">
-          <span
-            className={`inline-block rounded-full px-2 py-0.5 ${
-              post.status === "published"
-                ? "bg-green-100 text-green-800"
-                : "bg-amber-100 text-amber-800"
-            }`}
-          >
-            {post.status === "published" ? "公開中" : "下書き"}
-          </span>
-          <span className="text-gray-500">
-            {post.date ? new Date(post.date).toISOString().slice(0, 10) : ""}
-          </span>
-          <span className="text-gray-400">ID: {post.id}</span>
-        </div>
-
-        <hr className="my-6" />
-
-        <article className="prose max-w-none">
-          <p className="text-gray-700">
-            {post.excerpt ?? "（本文サンプル）ここに本文が入ります。"}
-          </p>
-        </article>
-      </main>
-    </>
-  );
-}
-
-export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const id = Number(ctx.params?.id);
-  if (!id) return { props: { post: null } };
+  if (Number.isNaN(id)) return { notFound: true };
 
   const { data, error } = await supabase
     .from("blog_posts")
-    .select("*")
+    .select("id,title,status,date,excerpt,thumbnail")
     .eq("id", id)
     .single();
 
-  if (error) return { props: { post: null } };
-  return { props: { post: data } };
+  if (error || !data) return { notFound: true };
+  return { props: { post: data as Post } };
+};
+
+export default function PreviewPage({ post }: Props) {
+  if (!post) return null;
+
+  return (
+    <main className="max-w-3xl mx-auto px-4 py-8">
+      <Link href="/blog" className="text-indigo-600 underline">
+        ← 管理に戻る
+      </Link>
+
+      <div className="mt-4 flex items-center gap-3">
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full ${
+            post.status === "published"
+              ? "bg-green-100 text-green-700"
+              : "bg-yellow-100 text-yellow-700"
+          }`}
+        >
+          {post.status === "published" ? "公開中" : "下書き"}
+        </span>
+        <span className="text-xs text-gray-500">{post.date ?? ""}</span>
+        <span className="text-xs text-gray-400">ID: {post.id}</span>
+      </div>
+
+      <h1 className="text-2xl font-semibold mt-3">{post.title}</h1>
+
+      {post.thumbnail && (
+        <img
+          src={post.thumbnail}
+          alt=""
+          className="mt-4 w-full rounded-md border"
+        />
+      )}
+
+      <article className="prose prose-sm mt-6">
+        <p>{post.excerpt ?? ""}</p>
+        {/* 本文連携は後で実装（content カラム追加など） */}
+      </article>
+    </main>
+  );
 }
