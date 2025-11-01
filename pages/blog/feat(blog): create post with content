@@ -1,0 +1,97 @@
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { supabase } from '../../lib/supabaseClient';
+
+export default function NewPostPage() {
+  const router = useRouter();
+  const [title, setTitle] = useState('');
+  const [status, setStatus] = useState<'draft' | 'published'>('draft');
+  const [date, setDate] = useState('');
+  const [thumbnail, setThumbnail] = useState('');
+  const [excerpt, setExcerpt] = useState('');
+  const [content, setContent] = useState(''); // ★ 追加
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onCreate = async () => {
+    setSaving(true);
+    setError(null);
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .insert([
+        {
+          title,
+          status,
+          date: date || null,
+          thumbnail: thumbnail || null,
+          excerpt: excerpt || null,
+          content: content || null, // ★ 追加
+        },
+      ])
+      .select('id')
+      .single();
+
+    setSaving(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push(`/blog/preview/${data!.id}`);
+    }
+  };
+
+  return (
+    <main className="max-w-3xl mx-auto p-6">
+      <Link href="/blog" className="text-indigo-600 hover:underline">← 管理に戻る</Link>
+      <h1 className="text-2xl font-semibold mt-4 mb-6">新規記事</h1>
+
+      <div className="space-y-5">
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">タイトル</div>
+          <input className="w-full border rounded px-3 py-2" value={title} onChange={(e)=>setTitle(e.target.value)} />
+        </label>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="block">
+            <div className="text-sm text-gray-600 mb-1">公開ステータス</div>
+            <select className="w-full border rounded px-3 py-2" value={status} onChange={(e)=>setStatus(e.target.value as any)}>
+              <option value="draft">下書き</option>
+              <option value="published">公開中</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <div className="text-sm text-gray-600 mb-1">日付</div>
+            <input type="date" className="w-full border rounded px-3 py-2" value={date} onChange={(e)=>setDate(e.target.value)} />
+          </label>
+        </div>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">サムネイルURL</div>
+          <input className="w-full border rounded px-3 py-2" placeholder="https://..." value={thumbnail} onChange={(e)=>setThumbnail(e.target.value)} />
+        </label>
+
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">本文の冒頭（excerpt）</div>
+          <textarea className="w-full border rounded px-3 py-2 h-24" value={excerpt} onChange={(e)=>setExcerpt(e.target.value)} />
+        </label>
+
+        {/* ★ 本文（content） */}
+        <label className="block">
+          <div className="text-sm text-gray-600 mb-1">本文（content）</div>
+          <textarea className="w-full border rounded px-3 py-2 h-56 leading-7" value={content} onChange={(e)=>setContent(e.target.value)} />
+        </label>
+
+        {error && <div className="text-red-600">{error}</div>}
+
+        <button
+          onClick={onCreate}
+          disabled={saving || !title}
+          className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
+        >
+          {saving ? '作成中...' : '作成してプレビューへ'}
+        </button>
+      </div>
+    </main>
+  );
+}
