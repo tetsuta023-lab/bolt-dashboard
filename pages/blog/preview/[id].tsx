@@ -1,24 +1,22 @@
-import { useRouter } from "next/router";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
-export default function BlogPreview() {
+export default function PreviewPost() {
   const { query } = useRouter();
   const id = String(query.id ?? "");
 
-  const mockTitle = id === "draft-1" ? "（下書き）長岡花火の取材メモ" : "Hotel Okura Tokyo Bay 宿泊レビュー";
-  const mockBody = id === "draft-1"
-    ? "これはプレビューのダミー本文です。長岡花火のポイント、移動、グルメなど。"
-    : "これはプレビューのダミー本文です。部屋、朝食、アクセス、総評など。";
-
   return (
-    <main className="min-h-screen bg-white">
-      <article className="prose mx-auto max-w-3xl px-6 py-10">
-        <h1>{mockTitle}</h1>
-        <p>{mockBody}</p>
+    <main className="mx-auto max-w-3xl px-6 py-10">
+      <h1 className="text-2xl font-bold mb-2">プレビュー（ID: {id}）</h1>
+      <p className="text-gray-500 mb-6">本番プレビューの体裁（ダミー表示）</p>
+
+      <article className="prose max-w-none">
+        <h2>ダミータイトル {id}</h2>
+        <p>ここに本文が入ります。Supabase 連携時に実データへ差し替え。</p>
       </article>
 
-      <div className="mx-auto max-w-3xl px-6">
-        <Link href="/blog" className="text-sm text-indigo-600 hover:text-indigo-700">
+      <div className="mt-8">
+        <Link href="/blog" className="text-indigo-600 hover:underline">
           ← 一覧へ戻る
         </Link>
       </div>
