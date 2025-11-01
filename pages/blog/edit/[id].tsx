@@ -1,9 +1,9 @@
-import Head from "next/head";
+import { GetServerSideProps } from "next";
+import { useState } from "react";
 import Link from "next/link";
-import { GetServerSidePropsContext } from "next";
 import { supabase } from "../../../lib/supabaseClient";
 
-type BlogPost = {
+type Post = {
   id: number;
   title: string;
   status: "draft" | "published";
@@ -11,57 +11,11 @@ type BlogPost = {
   excerpt: string | null;
 };
 
-type Props = { post: BlogPost | null };
+type Props = { post: Post | null };
 
-export default function BlogEdit({ post }: Props) {
-  if (!post) {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <p className="text-gray-600">記事が見つかりませんでした。</p>
-        <Link href="/blog" className="text-indigo-600 hover:underline">
-          ← 管理に戻る
-        </Link>
-      </main>
-    );
-  }
-
-  return (
-    <>
-      <Head><title>{post.title} | 編集</title></Head>
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <Link href="/blog" className="text-indigo-600 hover:underline">
-          ← 管理に戻る
-        </Link>
-        <h1 className="mt-3 text-2xl font-semibold">編集（閲覧用ダミー）</h1>
-
-        <div className="mt-6 space-y-3">
-          <div>
-            <div className="text-sm text-gray-500">タイトル</div>
-            <div className="rounded-md border bg-white px-3 py-2">{post.title}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">ステータス</div>
-            <div className="rounded-md border bg-white px-3 py-2">{post.status}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">日付</div>
-            <div className="rounded-md border bg-white px-3 py-2">
-              {post.date ? new Date(post.date).toISOString().slice(0, 10) : ""}
-            </div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">概要</div>
-            <div className="rounded-md border bg-white px-3 py-2">{post.excerpt}</div>
-          </div>
-        </div>
-      </main>
-    </>
-  );
-}
-
-export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const id = Number(ctx.params?.id);
-  if (!id) return { props: { post: null } };
+  if (Number.isNaN(id)) return { notFound: true };
 
   const { data, error } = await supabase
     .from("blog_posts")
@@ -69,6 +23,98 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     .eq("id", id)
     .single();
 
-  if (error) return { props: { post: null } };
-  return { props: { post: data } };
+  if (error || !data) return { notFound: true };
+  return { props: { post: data as Post } };
+};
+
+export default function EditPage({ post }: Props) {
+  if (!post) return null;
+
+  const [title, setTitle] = useState(post.title);
+  const [status, setStatus] = useState<Post["status"]>(post.status);
+  const [date, setDate] = useState(post.date ?? "");
+  const [excerpt, setExcerpt] = useState(post.excerpt ?? "");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const onSave = async () => {
+    setSaving(true);
+    setMsg(null);
+    const { error } = await supabase
+      .from("blog_posts")
+      .update({ title, status, date, excerpt })
+      .eq("id", post.id);
+    setSaving(false);
+    setMsg(error ? `保存失敗: ${error.message}` : "保存しました");
+  };
+
+  return (
+    <main className="max-w-3xl mx-auto px-4 py-8">
+      <Link href="/blog" className="text-indigo-600 underline">
+        ← 管理に戻る
+      </Link>
+      <h1 className="text-2xl font-semibold mt-3">記事を編集</h1>
+
+      <div className="mt-6 space-y-4">
+        <label className="block">
+          <span className="text-sm text-gray-700">タイトル</span>
+          <input
+            className="mt-1 w-full rounded border px-3 py-2"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-gray-700">ステータス</span>
+          <select
+            className="mt-1 w-full rounded border px-3 py-2"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as Post["status"])}
+          >
+            <option value="draft">draft（下書き）</option>
+            <option value="published">published（公開）</option>
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-gray-700">日付</span>
+          <input
+            type="date"
+            className="mt-1 w-full rounded border px-3 py-2"
+            value={date ?? ""}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-gray-700">抜粋（概要）</span>
+          <textarea
+            rows={4}
+            className="mt-1 w-full rounded border px-3 py-2"
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+          />
+        </label>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="px-4 py-2 rounded bg-indigo-600 text-white disabled:opacity-60"
+          >
+            {saving ? "保存中…" : "保存"}
+          </button>
+          <Link
+            href={`/blog/preview/${post.id}`}
+            className="px-4 py-2 rounded border"
+          >
+            プレビューを見る
+          </Link>
+        </div>
+
+        {msg && <p className="text-sm mt-2">{msg}</p>}
+      </div>
+    </main>
+  );
 }
