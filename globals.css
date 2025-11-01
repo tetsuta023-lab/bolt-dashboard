@@ -2,7 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom global styles */
-body {
-  @apply bg-gradient-to-b from-indigo-100 to-blue-200 text-gray-800 min-h-screen;
+/* 記事本文のスタイル調整 */
+.prose {
+  max-width: 68ch;
+}
+
+/* 本文中の画像を丸角にする */
+.prose img {
+  @apply rounded;
+}
+
+/* 引用やテーブルなども整える */
+.prose blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic text-gray-600;
+}
+
+.prose table {
+  @apply w-full border-collapse border border-gray-300 text-sm;
+}
+
+.prose th,
+.prose td {
+  @apply border border-gray-300 px-3 py-2;
 }
