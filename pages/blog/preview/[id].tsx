@@ -1,62 +1,69 @@
 // pages/blog/preview/[id].tsx
-import Link from "next/link";
 import { useRouter } from "next/router";
-import Image from "next/image";
-import { posts } from "../../../lib/blog/data";
+import Link from "next/link";
+import Head from "next/head";
+import { BLOG_POSTS } from "../../../lib/blog/data";
 
-export default function BlogPreview() {
+export default function BlogPreviewPage() {
   const router = useRouter();
-  const id = Number(router.query.id);
-  const post = posts.find((p) => p.id === id);
+  const { id } = router.query;
+
+  const post = BLOG_POSTS.find(p => String(p.id) === String(id));
 
   if (!post) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-8">
-        <p className="text-gray-600">記事が見つかりません。（id: {id}）</p>
-        <Link href="/blog" className="text-indigo-600 underline">
-          ← 一覧へ
-        </Link>
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <h1 className="text-xl font-semibold mb-6">記事が見つかりませんでした</h1>
+        <Link href="/blog" className="text-indigo-600 hover:underline">← ブログ管理へ戻る</Link>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">👀 プレビュー</h1>
-        <Link href={`/blog/edit/${id}`} className="text-indigo-600 underline">
-          編集へ戻る →
-        </Link>
-      </div>
+    <>
+      <Head>
+        <title>{post.title} | プレビュー</title>
+        <meta name="description" content={post.excerpt} />
+      </Head>
 
-      <article className="prose max-w-none">
-        <h2>{post.title}</h2>
-        <p className="text-sm text-gray-500">{post.date}</p>
-        <p>
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs ${
-              post.status === "published"
-                ? "bg-green-100 text-green-700"
-                : "bg-amber-100 text-amber-700"
-            }`}
-          >
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">{post.title}</h1>
+          <span className={`text-sm px-2 py-1 rounded ${
+            post.status === "published" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"
+          }`}>
             {post.status === "published" ? "公開中" : "下書き"}
           </span>
-        </p>
+        </div>
+
+        <p className="text-gray-500 text-sm mb-4">{post.date}</p>
 
         {post.thumbnail && (
-          <div className="my-4 overflow-hidden rounded-md border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img alt="" src={post.thumbnail} className="w-full" />
-          </div>
+          <img
+            src={post.thumbnail}
+            alt={post.title}
+            className="w-full rounded-md mb-6"
+          />
         )}
 
-        <p className="text-gray-700">{post.excerpt}</p>
-        <hr />
-        <p className="text-gray-500">
-          ※デモ表示です。本文や保存は次のステップで Supabase と接続します。
-        </p>
-      </article>
-    </main>
+        {/* 本文（Markdownっぽく見える簡易表示：改行を反映） */}
+        <article className="prose max-w-none">
+          {post.body ? (
+            post.body.split("\n").map((line, i) => (
+              <p key={i} className="mb-3 whitespace-pre-wrap">{line}</p>
+            ))
+          ) : (
+            <p className="text-gray-600">
+              本文が未入力です。編集ページから本文（body）を追加してください。
+            </p>
+          )}
+        </article>
+
+        <div className="mt-10 flex gap-4">
+          <Link href="/blog" className="text-indigo-600 hover:underline">← ブログ管理へ</Link>
+          <Link href={`/blog/edit/${post.id}`} className="text-gray-600 hover:underline">編集する →</Link>
+        </div>
+      </main>
+    </>
   );
 }
