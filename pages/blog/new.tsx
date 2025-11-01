@@ -1,30 +1,37 @@
 import Link from "next/link";
+import { useState } from "react";
 
-export default function BlogNew() {
+export default function NewPostPage() {
+  const [title, setTitle] = useState("");
+  const [body, setBody]   = useState("");
+
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-3xl px-6 py-8">
-        <h1 className="text-2xl font-semibold text-gray-900">新規記事</h1>
+    <main className="mx-auto max-w-3xl px-6 py-10">
+      <h1 className="text-2xl font-bold mb-6">新規記事作成</h1>
 
-        <form className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm text-gray-700">タイトル</label>
-            <input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 outline-none" />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-700">本文</label>
-            <textarea rows={10} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 outline-none" />
-          </div>
+      <div className="space-y-4">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="タイトル"
+          className="w-full rounded border px-3 py-2"
+        />
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="本文（ダミー・保存は未実装）"
+          rows={10}
+          className="w-full rounded border px-3 py-2"
+        />
+      </div>
 
-          <div className="flex gap-2">
-            <button type="button" className="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700">
-              保存（ダミー）
-            </button>
-            <Link href="/blog" className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-              一覧へ戻る
-            </Link>
-          </div>
-        </form>
+      <div className="mt-6 flex gap-3">
+        <button className="rounded bg-indigo-600 px-4 py-2 text-white cursor-not-allowed opacity-50">
+          保存（ダミー）
+        </button>
+        <Link href="/blog" className="rounded border px-4 py-2 hover:bg-gray-50">
+          キャンセル
+        </Link>
       </div>
     </main>
   );
