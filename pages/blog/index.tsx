@@ -1,57 +1,87 @@
-import { useEffect, useState } from "react"
-import Link from "next/link"
-// ここを相対パスに
-import { supabase } from "../../lib/supabaseClient"
+import Head from "next/head";
+import Link from "next/link";
+import { supabase } from "../../lib/supabaseClient";
 
 type BlogPost = {
-  id: number
-  title: string
-  status: string
-  date: string
-  excerpt: string
+  id: number;
+  title: string;
+  status: "draft" | "published";
+  date: string | null;
+  excerpt: string | null;
+  thumbnail?: string | null;
+};
+
+type Props = { posts: BlogPost[] };
+
+export default function BlogList({ posts }: Props) {
+  return (
+    <>
+      <Head><title>ブログ管理</title></Head>
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        <h1 className="text-xl font-semibold mb-4">📒 ブログ管理</h1>
+
+        <div className="mb-4">
+          <Link
+            href="/blog/new"
+            className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-white hover:opacity-90"
+          >
+            + 新規記事
+          </Link>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {posts.map((p) => (
+            <div key={p.id} className="rounded-lg border bg-white p-4">
+              <div className="flex items-center gap-2 text-sm mb-1">
+                <span
+                  className={`inline-block rounded-full px-2 py-0.5 ${
+                    p.status === "published"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-amber-100 text-amber-800"
+                  }`}
+                >
+                  {p.status === "published" ? "公開中" : "下書き"}
+                </span>
+                <span className="text-gray-500">
+                  {p.date ? new Date(p.date).toISOString().slice(0, 10) : ""}
+                </span>
+              </div>
+
+              <div className="font-medium">{p.title}</div>
+              <div className="text-sm text-gray-600 line-clamp-2">{p.excerpt}</div>
+
+              <div className="mt-3 flex gap-8">
+                <Link href={`/blog/edit/${p.id}`} className="text-indigo-600 hover:underline">
+                  編集
+                </Link>
+                <Link href={`/blog/preview/${p.id}`} className="text-indigo-600 hover:underline">
+                  プレビュー
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6">
+          <Link href="/dashboard-v2" className="text-indigo-600 hover:underline">
+            ← Dashboard v2 に戻る
+          </Link>
+        </div>
+      </main>
+    </>
+  );
 }
 
-export default function BlogList() {
-  const [posts, setPosts] = useState<BlogPost[]>([])
-  const [loading, setLoading] = useState(true)
+export async function getServerSideProps() {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("id,title,status,date,excerpt,thumbnail")
+    .order("id", { ascending: true });
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const { data, error } = await supabase
-        .from("blog_posts")
-        .select("*")
-        .order("date", { ascending: false })
+  if (error) {
+    // 空配列でも描画できるようにする
+    return { props: { posts: [] as BlogPost[] } };
+  }
 
-      if (error) {
-        console.error("Error fetching posts:", error)
-      } else {
-        setPosts(data || [])
-      }
-      setLoading(false)
-    }
-    fetchPosts()
-  }, [])
-
-  if (loading) return <p>読み込み中...</p>
-
-  return (
-    <div style={{ padding: "2rem" }}>
-      <h1>📝 ブログ管理</h1>
-      {posts.length === 0 ? (
-        <p>記事がまだありません。</p>
-      ) : (
-        posts.map((post) => (
-          <div key={post.id} style={{ border: "1px solid #ddd", padding: "1rem", marginBottom: "1rem" }}>
-            <p style={{ color: post.status === "published" ? "green" : "orange" }}>
-              {post.status === "published" ? "公開中" : "下書き"}
-            </p>
-            <h3>{post.title}</h3>
-            <p>{post.excerpt}</p>
-            <p>{post.date}</p>
-            <Link href={`/blog/preview/${post.id}`}>プレビュー</Link>
-          </div>
-        ))
-      )}
-    </div>
-  )
+  return { props: { posts: (data ?? []) as BlogPost[] } };
 }
