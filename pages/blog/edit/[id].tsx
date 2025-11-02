@@ -1,152 +1,99 @@
-import { GetServerSideProps } from "next";
-import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { supabase } from "../../../lib/supabaseClient";
-import { useRouter } from "next/router";
+// pages/blog/edit/[id].tsx
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { supabase } from '../../../lib/supabaseClient';
 
-type Post = {
-  id: number;
-  title: string;
-  status: "draft" | "published";
-  date: string | null;
-  excerpt: string | null;
-  thumbnail: string | null;
-  content: string | null;
-};
+type Status = 'draft' | 'published';
 
-type Props = { initial: Post | null };
-
-export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const id = Number(ctx.params?.id);
-  if (!id) return { props: { initial: null } };
-
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error) return { props: { initial: null } };
-  return { props: { initial: data as Post } };
-};
-
-export default function EditPage({ initial }: Props) {
+export default function EditPostPage() {
   const router = useRouter();
-  if (!initial) return <main className="p-6">記事が見つかりません。</main>;
+  const id = Number(router.query.id);
 
-  const [title, setTitle] = useState(initial.title);
-  const [status, setStatus] = useState<"draft" | "published">(initial.status);
-  const [date, setDate] = useState(initial.date ?? "");
-  const [excerpt, setExcerpt] = useState(initial.excerpt ?? "");
-  const [thumbnail, setThumbnail] = useState(initial.thumbnail ?? "");
-  const [content, setContent] = useState(initial.content ?? "");
+  const [title, setTitle] = useState('');
+  const [status, setStatus] = useState<Status>('draft');
+  const [date, setDate] = useState<string>('');
+  const [excerpt, setExcerpt] = useState('');
+  const [thumbnail, setThumbnail] = useState('');
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const save = async () => {
+  useEffect(() => {
+    if (!router.isReady) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('title,status,date,excerpt,thumbnail,content')
+        .eq('id', id)
+        .single();
+      if (error) {
+        setMessage(`読み込み失敗：${error.message}`);
+      } else if (data) {
+        setTitle(data.title ?? '');
+        setStatus((data.status as Status) ?? 'draft');
+        setDate(data.date ?? '');
+        setExcerpt(data.excerpt ?? '');
+        setThumbnail(data.thumbnail ?? '');
+        setContent(data.content ?? '');
+      }
+      setLoading(false);
+    })();
+  }, [router.isReady, id]);
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage(null);
     const { error } = await supabase
-      .from("blog_posts")
-      .update({
-        title,
-        status,
-        date: date || null,
-        excerpt: excerpt || null,
-        thumbnail: thumbnail || null,
-        content
-      })
-      .eq("id", initial.id);
-
-    if (error) {
-      alert(`更新に失敗: ${error.message}`);
-      return;
-    }
-    router.push(`/blog/preview/${initial.id}`);
+      .from('blog_posts')
+      .update({ title, status, date, excerpt, thumbnail, content })
+      .eq('id', id);
+    setSaving(false);
+    setMessage(error ? `更新失敗：${error.message}` : '更新しました！');
   };
 
+  if (loading) return <div className="container"><p>読込中...</p></div>;
+
   return (
-    <main className="p-6">
-      <a href="/blog" className="text-sm text-indigo-600 hover:underline">
-        ← 管理に戻る
-      </a>
-      <h1 className="mt-3 text-2xl font-semibold">記事を編集</h1>
+    <div className="container">
+      <h1>記事を編集（ID: {id}）</h1>
+      <form onSubmit={handleUpdate} className="form">
+        <label>タイトル
+          <input value={title} onChange={(e)=>setTitle(e.target.value)} required />
+        </label>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        {/* 入力 */}
-        <div className="rounded border bg-white p-4 shadow-sm">
-          <label className="block text-sm font-medium">タイトル</label>
-          <input
-            className="mt-1 w-full rounded border px-3 py-2"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+        <label>ステータス
+          <select value={status} onChange={(e)=>setStatus(e.target.value as Status)}>
+            <option value="draft">draft</option>
+            <option value="published">published</option>
+          </select>
+        </label>
 
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium">ステータス</label>
-              <select
-                className="mt-1 w-full rounded border px-3 py-2"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
-              >
-                <option value="draft">下書き</option>
-                <option value="published">公開</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">日付</label>
-              <input
-                type="date"
-                className="mt-1 w-full rounded border px-3 py-2"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-          </div>
+        <label>日付
+          <input type="date" value={date} onChange={(e)=>setDate(e.target.value)} required />
+        </label>
 
-          <label className="mt-4 block text-sm font-medium">サムネURL</label>
-          <input
-            className="mt-1 w-full rounded border px-3 py-2"
-            value={thumbnail}
-            onChange={(e) => setThumbnail(e.target.value)}
-          />
+        <label>抜粋
+          <input value={excerpt} onChange={(e)=>setExcerpt(e.target.value)} />
+        </label>
 
-          <label className="mt-4 block text-sm font-medium">抜粋</label>
-          <textarea
-            className="mt-1 h-24 w-full rounded border px-3 py-2"
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-          />
+        <label>サムネイルURL
+          <input value={thumbnail} onChange={(e)=>setThumbnail(e.target.value)} />
+        </label>
 
-          <label className="mt-4 block text-sm font-medium">
-            本文（Markdown対応）
-          </label>
-          <textarea
-            className="mt-1 h-56 w-full rounded border px-3 py-2 font-mono"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
+        <label>本文（Markdown）
+          <textarea rows={14} value={content} onChange={(e)=>setContent(e.target.value)} />
+        </label>
 
-          <button
-            onClick={save}
-            className="mt-4 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-          >
-            更新してプレビューへ
-          </button>
+        <div className="row">
+          <button type="submit" disabled={saving}>{saving ? '更新中...' : '更新する'}</button>
+          <Link className="link" href={`/blog/preview/${id}`}>プレビュー</Link>
+          <Link className="link" href="/blog">一覧へ</Link>
         </div>
-
-        {/* プレビュー */}
-        <div className="rounded border bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-sm font-medium text-gray-500">プレビュー</h2>
-          {thumbnail ? (
-            <img src={thumbnail} alt="" className="mb-4 w-full rounded" />
-          ) : null}
-          <article className="prose prose-neutral">
-            <h1>{title || "（タイトル）"}</h1>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content || "本文（Markdown）がここに表示されます。"}
-            </ReactMarkdown>
-          </article>
-        </div>
-      </div>
-    </main>
+        {message && <p className="msg">{message}</p>}
+      </form>
+    </div>
   );
 }
