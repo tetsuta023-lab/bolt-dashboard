@@ -1,7 +1,8 @@
+// pages/blog/preview/[id].tsx
 import Link from 'next/link';
-import { GetServerSideProps } from 'next';
+import type { GetServerSideProps } from 'next';
 import { supabase } from '../../../lib/supabaseClient';
-import ReactMarkdown from 'react-markdown';
+import { marked } from 'marked';
 
 type Post = {
   id: number;
@@ -13,47 +14,57 @@ type Post = {
   content: string | null;
 };
 
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
+type Props = { post: Post | null };
+
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const id = Number(ctx.params?.id);
   const { data, error } = await supabase
     .from('blog_posts')
-    .select('id, title, status, date, excerpt, thumbnail, content')
+    .select('id,title,status,date,excerpt,thumbnail,content')
     .eq('id', id)
     .single();
 
-  if (error || !data) {
-    console.error('Error fetching post:', error);
-    return { notFound: true };
-  }
-
-  return { props: { post: data } };
+  if (error || !data) return { props: { post: null } };
+  return { props: { post: data as Post } };
 };
 
-export default function BlogPreview({ post }: { post: Post }) {
-  return (
-    <main style={{ maxWidth: '700px', margin: '2rem auto', padding: '0 1rem' }}>
-      <Link href="/blog">
-        <a style={{ display: 'block', marginBottom: '1rem', color: '#0070f3' }}>← 管理に戻る</a>
-      </Link>
+export default function PreviewPage({ post }: Props) {
+  if (!post) {
+    return (
+      <div className="container">
+        <p>記事が見つかりませんでした。</p>
+        <Link className="link" href="/blog">一覧へ戻る</Link>
+      </div>
+    );
+  }
 
-      <h1 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>{post.title}</h1>
-      <p style={{ color: '#888', marginBottom: '1.5rem' }}>{post.date}</p>
+  const html = marked.parse(post.content ?? '');
+
+  return (
+    <div className="container">
+      <Link className="link" href="/blog">← 管理に戻る</Link>
+      <div className="head">
+        <span className={`badge ${post.status === 'published' ? 'ok' : ''}`}>
+          {post.status === 'published' ? '公開中' : '下書き'}
+        </span>
+        <span className="date">{post.date ?? ''}</span>
+        <span className="id">ID: {post.id}</span>
+      </div>
+
+      <h1>{post.title}</h1>
 
       {post.thumbnail && (
-        <img
-          src={post.thumbnail}
-          alt={post.title}
-          style={{
-            width: '100%',
-            borderRadius: '8px',
-            marginBottom: '1.5rem',
-          }}
-        />
+        <img className="thumb" src={post.thumbnail} alt={post.title} />
       )}
 
-      <div className="markdown-body">
-        <ReactMarkdown>{post.content || ''}</ReactMarkdown>
+      {post.excerpt && <p className="excerpt">{post.excerpt}</p>}
+
+      <article className="prose" dangerouslySetInnerHTML={{ __html: html }} />
+
+      <div className="row">
+        <Link className="link" href={`/blog/edit/${post.id}`}>編集</Link>
+        <Link className="link" href="/blog">一覧へ</Link>
       </div>
-    </main>
+    </div>
   );
 }
