@@ -1,27 +1,14 @@
-/* styles/globals.css */
-
-/* Tailwind base */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* レイアウト調整 */
-:root {
-  --ring: 0 0% 63%;
+/* ---- 以下は任意の追加。壊れやすい@applyは使わない ---- */
+:root { color-scheme: light; }
+html, body {
+  padding: 0;
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", "Apple Color Emoji", "Segoe UI Emoji";
+  background: #ffffff;
+  color: #111827;
 }
-html, body, #__next {
-  height: 100%;
-}
-body {
-  @apply text-slate-800 antialiased bg-white;
-}
-
-/* カード */
-.card {
-  @apply rounded-xl border bg-white/80 p-5 shadow-sm hover:shadow-md transition;
-}
-
-/* バッジ */
-.badge {
-  @apply rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-600;
-}
+a { text-decoration: none; }
