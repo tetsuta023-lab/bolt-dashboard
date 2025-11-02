@@ -6,25 +6,15 @@ type Tile = { title: string; desc: string; href: string; badge?: string };
 
 export default function Dashboard() {
   const tiles: Tile[] = [
-    // ① ブログ管理
     { title: "ブログ管理", desc: "記事の一覧・新規作成・編集・プレビュー", href: "/blog", badge: "運用中" },
-    // ② 神社と旅の記録（journal）
     { title: "神社と旅の記録", desc: "参拝ログ／旅ログ／写真とメモ", href: "/journal", badge: "計画中" },
-    // ③ マイル＆ポイント
     { title: "マイル＆ポイント", desc: "デルタ/ANA/JALなどの積算と活用", href: "/miles", badge: "計画中" },
-    // ④ Airbnb 収益計算
     { title: "Airbnb 収益計算", desc: "稼働率・単価・費用を想定して収支を試算", href: "/bnb", badge: "計画中" },
-    // ⑤ Kindle 出版
     { title: "Kindle 出版", desc: "企画・原稿・表紙・KDP 登録の進行管理", href: "/kindle", badge: "計画中" },
-    // ⑥ AI 履歴書
     { title: "AI 履歴書", desc: "職歴入力→自己PR/職務要約を自動草案", href: "/ai-resume", badge: "計画中" },
-    // ⑦ 補助金・融資
     { title: "補助金・融資", desc: "要件チェック／必要書類TODO／申請ステータス", href: "/grants", badge: "計画中" },
-    // ⑧ 気分の記録
     { title: "気分の記録", desc: "1日数回のムード記録と簡単メモ", href: "/mood", badge: "計画中" },
-    // ⑨ スポーツ記録
     { title: "スポーツ記録", desc: "バスケ/筋トレのメニュー・成長トラッキング", href: "/sports", badge: "計画中" },
-    // ⑩ 優しさマップ
     { title: "優しさマップ", desc: "街で見つけた親切・良スポットを地図で記録", href: "/kindness-map", badge: "計画中" },
   ];
 
