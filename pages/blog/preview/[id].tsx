@@ -1,70 +1,57 @@
-// pages/blog/preview/[id].tsx
-import Link from 'next/link';
-import type { GetServerSideProps } from 'next';
-import { supabase } from '../../../lib/supabaseClient';
-import { marked } from 'marked';
+import { GetServerSideProps } from "next";
+import Head from "next/head";
+import { marked } from "marked"; // ← ここで 'marked' を正しく読み込み
+import { supabase } from "../../../lib/supabaseClient";
 
 type Post = {
   id: number;
   title: string;
-  status: 'draft' | 'published';
-  date: string | null;
-  excerpt: string | null;
-  thumbnail: string | null;
-  content: string | null;
+  content: string;
+  date: string;
+  excerpt?: string;
 };
 
-type Props = { post: Post | null };
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  const { id } = params || {};
+  if (!id) return { notFound: true };
 
-export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const id = Number(ctx.params?.id);
-  const { data, error } = await supabase
-    .from('blog_posts')
-    .select('id,title,status,date,excerpt,thumbnail,content')
-    .eq('id', id)
+  const { data: post, error } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .eq("id", id)
     .single();
 
-  if (error || !data) return { props: { post: null } };
-  return { props: { post: data as Post } };
-};
-
-export default function PreviewPage({ post }: Props) {
-  if (!post) {
-    return (
-      <div className="container">
-        <p>記事が見つかりませんでした。</p>
-        <Link className="link" href="/blog">一覧へ戻る</Link>
-      </div>
-    );
+  if (error || !post) {
+    console.error("Error fetching post:", error);
+    return { notFound: true };
   }
 
-  const html = marked.parse(post.content ?? '');
+  return {
+    props: {
+      post,
+    },
+  };
+};
+
+export default function BlogPreview({ post }: { post: Post }) {
+  const htmlContent = marked.parse(post.content || ""); // ← Markdown → HTML変換
 
   return (
-    <div className="container">
-      <Link className="link" href="/blog">← 管理に戻る</Link>
-      <div className="head">
-        <span className={`badge ${post.status === 'published' ? 'ok' : ''}`}>
-          {post.status === 'published' ? '公開中' : '下書き'}
-        </span>
-        <span className="date">{post.date ?? ''}</span>
-        <span className="id">ID: {post.id}</span>
-      </div>
-
-      <h1>{post.title}</h1>
-
-      {post.thumbnail && (
-        <img className="thumb" src={post.thumbnail} alt={post.title} />
-      )}
-
-      {post.excerpt && <p className="excerpt">{post.excerpt}</p>}
-
-      <article className="prose" dangerouslySetInnerHTML={{ __html: html }} />
-
-      <div className="row">
-        <Link className="link" href={`/blog/edit/${post.id}`}>編集</Link>
-        <Link className="link" href="/blog">一覧へ</Link>
-      </div>
-    </div>
+    <>
+      <Head>
+        <title>{post.title} | Tetsuta Blog Preview</title>
+        <meta name="description" content={post.excerpt || ""} />
+      </Head>
+      <main className="max-w-3xl mx-auto py-10 px-5">
+        <article className="prose prose-indigo max-w-none">
+          <h1>{post.title}</h1>
+          <p className="text-gray-500 text-sm">{post.date}</p>
+          <div
+            className="mt-6"
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
+        </article>
+      </main>
+    </>
   );
 }
