@@ -1,32 +1,27 @@
 /* styles/globals.css */
-:root{ --edge:#e5e7eb; --ink:#111827; --muted:#6b7280; --brand:#4f46e5; }
-*{ box-sizing:border-box; }
-body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", sans-serif; color:var(--ink); margin:0; }
-a{ color:var(--brand); text-decoration:none; }
-.container{ max-width:840px; margin:40px auto; padding:0 16px; }
-h1{ font-size:28px; margin:12px 0 16px; }
 
-.form{ display:grid; gap:14px; margin-top:12px; }
-label{ display:grid; gap:6px; font-weight:600; }
-input,select,textarea{ padding:10px 12px; border:1px solid var(--edge); border-radius:8px; font-size:14px; }
-textarea{ resize:vertical; }
+/* Tailwind base */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-.row{ display:flex; gap:12px; align-items:center; margin-top:8px; }
-button{ padding:10px 14px; border:0; border-radius:8px; background:var(--brand); color:#fff; cursor:pointer; }
-button[disabled]{ opacity:.6; cursor:default; }
-.link{ padding:8px 10px; border:1px solid var(--edge); border-radius:8px; }
+/* レイアウトの微調整（安全） */
+:root {
+  --ring: 0 0% 63%;
+}
+html, body, #__next {
+  height: 100%;
+}
+body {
+  @apply text-slate-800 antialiased bg-white;
+}
 
-.msg{ margin-top:8px; color:var(--muted); }
-.head{ display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px; margin:8px 0 14px; }
-.badge{ padding:2px 8px; border-radius:999px; background:#f3f4f6; }
-.badge.ok{ background:#dcfce7; }
+/* カードの影とラウンド */
+.card {
+  @apply rounded-xl border bg-white/80 p-5 shadow-sm hover:shadow-md transition;
+}
 
-.thumb{ width:100%; max-width:720px; height:auto; display:block; margin:12px auto 16px; border-radius:12px; border:1px solid var(--edge); }
-.excerpt{ color:var(--muted); }
-
-/* ざっくりMarkdown */
-.prose h1,.prose h2,.prose h3{ margin-top:1.6em; }
-.prose p{ line-height:1.9; margin:1em 0; }
-.prose ul, .prose ol{ padding-left:1.2em; margin: .8em 0; }
-.prose code{ background:#f3f4f6; padding:2px 6px; border-radius:6px; }
-.prose pre{ background:#0f172a; color:#e2e8f0; padding:14px; border-radius:12px; overflow:auto; }
+/* バッジ */
+.badge {
+  @apply rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-600;
+}
